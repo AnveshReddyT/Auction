@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏏 Elite Auction Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .highlight-strong { background-color: #dcfce7; border-left: 4px solid #22c55e; }
+    .highlight-weak   { background-color: #fee2e2; border-left: 4px solid #ef4444; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 text-gray-900 p-4">
+
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-6 tracking-wide text-gray-800">
+      🏏 Elite Auction Dashboard
+    </h1>
+
+    <!-- TEAM TABLES -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" id="teamCards"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- ALL PLAYERS (Interactive) -->
+      <div class="bg-white rounded-3xl shadow-xl border p-6">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-users text-blue-600"></i> All Players
+        </h2>
+        <div id="allPlayers" class="space-y-2"></div>
+      </div>
+
+      <!-- AVAILABLE PLAYERS TABLE -->
+      <div class="bg-white rounded-3xl shadow-xl border p-6">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-list text-emerald-600"></i> Available Players
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="availableTable">
+            <thead>
+              <tr class="border-b text-gray-500 text-left">
+                <th class="py-3 font-medium">Name</th>
+                <th class="py-3 text-center">Bat</th>
+                <th class="py-3 text-center">Bowl</th>
+                <th class="py-3 text-center">Field</th>
+                <th class="py-3 text-center">Tag</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-700" id="availableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === DATA ===
+    const teams = [
+      { name: "360Devils",   color: "bg-red-50 border-red-200" },
+      { name: "TeamX",       color: "bg-blue-50 border-blue-200" },
+      { name: "RebelSquad",  color: "bg-purple-50 border-purple-200" },
+      { name: "SimpleStars", color: "bg-green-50 border-green-200" },
+    ];
+
+    let players = [
+      "Jaya Krishna","Vinay Gogineni","Vivek Nanda","Kodanda Naidu Madala","Raj","Tarun","Charan","Dharma",
+      "Avinash","Vemu Chowdary","Ramesh","Sreenu","Haji Shaik","Vidya Sagar","Ayyappa","Mandeep (Ramesh)",
+      "Pranay Gopalam","Balu Gogineni","Naveen Reddy","Mighty Madan","Survi Sai Kumar","Jayavardhan (Beast)",
+      "Naresh","Mallikharjuna (Malli)","Bhanu","Mani","Dileep","Suresh","Ravikanthvennamalla (Bunty)",
+      "Vinoth","Shashi","Sandeep Reddy","Vivek Gudavalli","Anvesh","Virinchi","JaiRaj","Ganesh","Venkat",
+      "Prudhvi Reddy","Sunil","SaiTeja","Rajesh","Jalandher","Nagesh Parisineti"
+    ].map((name, idx) => ({
+      id: idx,
+      name,
+      sold: false,
+      team: null,
+      highlight: null,
+      skills: { bat: false, bowl: false, field: false }
+    }));
+
+    // === RENDER FUNCTIONS ===
+    function renderTeamCards() {
+      const container = document.getElementById('teamCards');
+      container.innerHTML = '';
+      
+      teams.forEach(team => {
+        const teamPlayers = players.filter(p => p.team === team.name);
+        
+        const cardHTML = `
+          <div class="p-5 rounded-3xl border shadow-sm ${team.color}">
+            <h3 class="font-bold text-lg mb-3 text-gray-800">${team.name}</h3>
+            ${teamPlayers.length === 0 ? 
+              `<p class="text-gray-400 text-sm italic">No players yet</p>` : 
+              `<table class="w-full text-xs">
+                <thead>
+                  <tr class="text-gray-500 border-b">
+                    <th class="text-left py-1">Name</th>
+                    <th class="text-center">Bat</th>
+                    <th class="text-center">Bowl</th>
+                    <th class="text-center">Field</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${teamPlayers.map(p => `
+                    <tr class="border-b last:border-0">
+                      <td class="py-1 font-medium">${p.name}</td>
+                      <td class="text-center">${p.skills.bat ? "✔" : ""}</td>
+                      <td class="text-center">${p.skills.bowl ? "✔" : ""}</td>
+                      <td class="text-center">${p.skills.field ? "✔" : ""}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>`
+            }
+          </div>
+        `;
+        container.innerHTML += cardHTML;
+      });
+    }
+
+    function renderAllPlayers() {
+      const container = document.getElementById('allPlayers');
+      container.innerHTML = '';
+
+      const remaining = players.filter(p => !p.sold);
+
+      remaining.forEach(player => {
+        const div = document.createElement('div');
+        div.className = `flex flex-wrap items-center gap-3 p-4 rounded-2xl transition-all text-sm border ${player.highlight === 'strong' ? 'highlight-strong' : player.highlight === 'weak' ? 'highlight-weak' : 'bg-white border-gray-100'}`;
+
+        div.innerHTML = `
+          <div class="flex-1 font-medium truncate">${player.name}</div>
+
+          <div class="flex gap-1">
+            ${['bat','bowl','field'].map(skill => `
+              <button onclick="toggleSkill(${player.id}, '${skill}')" 
+                class="px-3 py-1 rounded-xl text-xs font-medium transition ${player.skills[skill] ? 'bg-yellow-400 text-black' : 'bg-gray-200 hover:bg-gray-300'}">
+                ${skill}
+              </button>
+            `).join('')}
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="setHighlight(${player.id}, 'strong')" 
+              class="px-3 py-1 bg-green-200 hover:bg-green-300 rounded-xl text-lg">★</button>
+            <button onclick="setHighlight(${player.id}, 'weak')" 
+              class="px-3 py-1 bg-red-200 hover:bg-red-300 rounded-xl text-lg">!</button>
+          </div>
+
+          <select onchange="assignTeam(${player.id}, this.value)" 
+            class="border rounded-2xl px-4 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="" disabled selected>Select Team</option>
+            ${teams.map(t => `<option value="${t.name}">${t.name}</option>`).join('')}
+          </select>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAvailableTable() {
+      const tbody = document.getElementById('availableBody');
+      tbody.innerHTML = '';
+
+      const remaining = players.filter(p => !p.sold);
+
+      remaining.forEach(p => {
+        const row = document.createElement('tr');
+        row.className = `border-b hover:bg-gray-50 transition ${p.highlight === 'strong' ? 'bg-green-50' : p.highlight === 'weak' ? 'bg-red-50' : ''}`;
+        row.innerHTML = `
+          <td class="py-4 font-medium">${p.name}</td>
+          <td class="text-center">${p.skills.bat ? "✔" : ""}</td>
+          <td class="text-center">${p.skills.bowl ? "✔" : ""}</td>
+          <td class="text-center">${p.skills.field ? "✔" : ""}</td>
+          <td class="text-center text-xl">
+            ${p.highlight === 'strong' ? '★' : p.highlight === 'weak' ? '!' : ''}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // === ACTIONS ===
+    window.assignTeam = function(id, teamName) {
+      if (!teamName) return;
+      players = players.map(p => 
+        p.id === id ? { ...p, sold: true, team: teamName } : p
+      );
+      refreshAll();
+    };
+
+    window.toggleSkill = function(id, skill) {
+      players = players.map(p => 
+        p.id === id ? { ...p, skills: { ...p.skills, [skill]: !p.skills[skill] } } : p
+      );
+      refreshAll();
+    };
+
+    window.setHighlight = function(id, type) {
+      players = players.map(p => 
+        p.id === id ? { ...p, highlight: p.highlight === type ? null : type } : p
+      );
+      refreshAll();
+    };
+
+    function refreshAll() {
+      renderTeamCards();
+      renderAllPlayers();
+      renderAvailableTable();
+    }
+
+    // Initial render
+    refreshAll();
+  </script>
+</body>
+</html>
